@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
+
+var secret string = "qwerty"
 
 func main() {
 
@@ -31,7 +34,13 @@ func main() {
 		text, _ := reader.ReadString('\n')
 
 		text = strings.TrimSuffix(text, "\n")
-		data := []byte(text)
+		if text == "1000" {
+			for i:= 0; i < 1000; i++ {
+				data := []byte(secret+"Message number: "+strconv.Itoa(i))
+				_, err = listener.Write(data)
+			}
+		}
+		data := []byte(secret+text)
 
 		_, err = listener.Write(data)
 
@@ -49,7 +58,7 @@ func main() {
 
 func reader(listener *net.UDPConn) {
 
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 10240)
 	for {
 		n, _, err := listener.ReadFromUDP(buffer)
 		if err != nil {
