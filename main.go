@@ -23,8 +23,7 @@ func reader(Conn *net.UDPConn, MessagesFromUser Messages, verifyUser ValidUser) 
 
 	var sms = make([]byte, 10240)
 
-	ticker := time.Tick(5 * time.Millisecond)
-	for range ticker {
+	for {
 		size, caddr, err := Conn.ReadFromUDP(sms)
 		if err != nil {
 			log.Println(err)
@@ -52,9 +51,10 @@ func validation(verifyUser ValidUser, userAddr *net.UDPAddr, envelope *[]byte, s
 	}
 }
 
+//
 func sender(Conn *net.UDPConn, MessagesToUser Messages) {
-	for letter := range MessagesToUser {
-		_, err := Conn.WriteTo(letter.mes, letter.userAddr)
+	for envelope := range MessagesToUser {
+		_, err := Conn.WriteTo(envelope.mes, envelope.userAddr)
 		if err != nil {
 			log.Println(err)
 		}
@@ -62,17 +62,36 @@ func sender(Conn *net.UDPConn, MessagesToUser Messages) {
 }
 
 func handler(verifiedUser ValidUser, MessagesFromUser, MessagesToUser Messages) {
+
+	// slice for offline users
+	offlineUsers := make([]string, 0, 1000)
+
+	// timeout for connections // 30sec
+	timeOut := 30000 * time.Millisecond
+
 	for mess := range MessagesFromUser {
-		test := verifiedUser
-		for client := range test {
-			if client != mess.userAddr.String() {
+		for client, date := range verifiedUser {
+
+			elapsed := time.Now().Sub(date)
+
+			if client != mess.userAddr.String() && elapsed < timeOut { //
 				addr, err := net.ResolveUDPAddr("udp", client)
 				if err != nil {
 					log.Println(err)
 				}
 				MessagesToUser <- message{addr, mess.mes}
 			}
+
+			if elapsed > timeOut {
+				offlineUsers = append(offlineUsers, client)
+			}
 		}
+
+		// remove offline users
+		for _, disconnect := range offlineUsers {
+			delete(verifiedUser, disconnect)
+		}
+		offlineUsers = make([]string, 0, 1000)
 	}
 }
 
