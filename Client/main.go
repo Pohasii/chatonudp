@@ -13,7 +13,7 @@ var secret string = "qwerty"
 
 func main() {
 
-	sAddr := "192.168.0.52:12345"
+	sAddr := "192.168.0.52:55442"
 	serverAddr, err := net.ResolveUDPAddr("udp", sAddr)
 	listener, err := net.DialUDP("udp", nil, serverAddr)
 	if err != nil {
